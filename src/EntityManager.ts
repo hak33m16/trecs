@@ -13,20 +13,20 @@ export class EntityManager {
   private tags: TagPool;
   private entities: Entity[];
   private groups: GroupPool;
-  private entityPool: any;
-  private componentPools: any;
+  // private entityPool: any;
   private groupKeyMap: WeakMap<Function[], string>;
 
   constructor() {
     this.tags = {};
     this.entities = [];
     this.groups = {};
-    this.entityPool = {};
-    this.componentPools = {};
+    // this.entityPool = {};
     this.groupKeyMap = new WeakMap();
   }
 
   public createEntity = (): Entity => {
+    // TODO: Copy over the entity pool idea. Prolly useful
+    // for not creating tons of new objects
     const entity = new Entity(this);
     this.entities.push(entity);
 
@@ -106,7 +106,7 @@ export class EntityManager {
   public entityAddComponent = (entity: Entity, component: Component) => {
     // If this entity already has this component we're returning,
     // but shouldn't we throw an error...? Could be misleading
-    if (entity._components.indexOf(component) !== -1) return;
+    if (entity._components.includes(component)) return;
 
     entity._components.push(component);
 
@@ -119,13 +119,17 @@ export class EntityManager {
       // Only add this entity to a group index if this component is in the group,
       // this entity has all the components of the group, and its not already in
       // the index.
-      if (group.componentClasses.indexOf(component.constructor) === -1) {
+      if (!group.componentClasses.includes(component.constructor)) {
         continue;
       }
       if (!entity.hasAllComponents(group.componentClasses)) {
         continue;
       }
-      if (group.entities.indexOf(entity) !== -1) {
+      // TODO: Calls like this seem really inefficient. Why aren't we using
+      // a hashmap to store entity IDs in groups? Could be getting instant
+      // access for each group. Currently, if groups = g, and entities = e
+      // our access time is O(g*e), could be O(g + e)
+      if (group.entities.includes(entity)) {
         continue;
       }
 
@@ -151,7 +155,7 @@ export class EntityManager {
     for (const groupName in this.groups) {
       const group = this.groups[groupName];
 
-      // TODO: Double check that component.constructor is right
+      // TODO: Double check that component.constructor is what we want to store here
       if (group.componentClasses.indexOf(component.constructor) === -1) {
         continue;
       }
@@ -168,6 +172,14 @@ export class EntityManager {
     const className = component.constructor.name;
     entity._components.splice(index, 1);
     delete entity._componentMap[className];
+  };
+
+  public queryComponents = (componentClasses: Function[]) => {
+    const group =
+      this.groups[this.groupKey(componentClasses)] ??
+      this.indexGroup(componentClasses);
+
+    return group.entities;
   };
 
   public count = () => this.entities.length;

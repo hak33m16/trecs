@@ -1,29 +1,10 @@
 [![Build Status](https://travis-ci.org/noffle/nano-ecs.svg?branch=master)](https://travis-ci.org/noffle/nano-ecs)
 
-# nano-ecs
+# TrECS
 
-> A nano-sized entity-component-system module.
+**T**ypeSc**r**ipt-first **E**ntity **C**omponent **S**ystem
 
-`nano-ecs` is not a big bloated game engine framework, but rather a small
-focused module that [does one thing
-well](https://en.wikipedia.org/wiki/Unix_philosophy#Do_One_Thing_and_Do_It_Well):
-creating and managing a set of entities and their components.
-
-
-## Background
-
-If you aren't familiar with paradigm of entity-component-systems (or "ECS" as
-the cool kids call it), you may get some background mileage from [this talk of
-mine](https://github.com/noffle/ECSTalk/blob/master/ECS%20Presentation.pdf), or
-[this article
-here](http://www.gamedev.net/page/resources/_/technical/game-programming/understanding-component-entity-systems-r3013).
-
-`nano-ecs` was created as fork of
-[`tiny-ecs`](https://github.com/bvalosek/tiny-ecs), which provides similar
-functionality, but tries to do much more than basic ECS (timers, 2d transforms,
-object pools, etc). The goal of `nano-ecs` is to provide only a core lightweight
-ECS implementation.
-
+> A medium-sized entity-component-system module forked from [`nano-ecs`](https://github.com/hackergrrl/nano-ecs)
 
 ## Installation
 
@@ -293,8 +274,8 @@ will ensure tests pass before any commit is permitted.
 
 
 ## License
-Copyright 2014 Brandon Valosek, forked and modified by Stephen Whitmore.
+Copyright 2014 Brandon Valosek, forked and modified by Stephen Whitmore. Forked and modified more by Hakeem Badran.
 
-**nano-ecs** is released under the MIT license.
+**trecs** is released under the MIT license.
 
 

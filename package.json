@@ -1,7 +1,7 @@
 {
-  "name": "nano-ecs",
-  "version": "2.4.0",
-  "description": "A very lean Entity-Component-System-like library.",
+  "name": "trecs",
+  "version": "0.0.1",
+  "description": "A TypeScript-first Entity Component System library.",
   "keywords": [
     "component",
     "entities",
@@ -21,19 +21,27 @@
       "email": "sww@eight45.net",
       "url": "http://eight45.net",
       "role": "mad forker"
+    },
+    {
+      "name": "Hakeem Badran",
+      "url": "http://hakeembadran.com",
+      "role": "neutral forker"
     }
   ],
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "standard && tape test/*.js"
+    "test": "standard && tape test/*.js",
+    "build": "rm -rf lib/ && npx tsc",
+    "clean": "rm -rf lib/"
   },
-  "main": "index.js",
+  "main": "lib/index.js",
   "license": "MIT",
   "devDependencies": {
     "standard": "^8.2.0",
-    "tape": "~2.3.2"
+    "tape": "~2.3.2",
+    "typescript": "^4.4.4"
   },
   "repository": {
     "type": "git",
@@ -56,5 +64,8 @@
   "dependencies": {
     "reuse-pool": "^1.0.2",
     "typedef": "~1.0.2"
-  }
+  },
+  "files": [
+    "/lib"
+  ]
 }

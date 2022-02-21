@@ -10,7 +10,7 @@ export class Entity {
 
   public id: number;
 
-  // Internal fields
+  /* Internal fields */
 
   public _manager: EntityManager | null;
   public _components: Component[];
@@ -25,37 +25,31 @@ export class Entity {
     this._componentMap = {};
   }
 
-  public component = (classRef: Function) => {
-    return this._componentMap[classRef.name];
-  };
+  public component<T extends Component>(classRef: Function): T {
+    return this._componentMap[classRef.name] as T;
+  }
 
   public addComponent = (component: Component) => {
-    if (this._manager === null || this._manager === undefined) {
-      throw new Error("Can't perform actions on Entity with no EntityManager");
-    }
-    this._manager.entityAddComponent(this, component);
+    this.assertManagerExists();
+    this._manager!.entityAddComponent(this, component);
 
     return this;
   };
 
   public removeComponent = (component: Component) => {
-    if (this._manager === null || this._manager === undefined) {
-      throw new Error("Can't perform actions on Entity with no EntityManager");
-    }
-    this._manager.entityRemoveComponent(this, component);
+    this.assertManagerExists();
+    this._manager!.entityRemoveComponent(this, component);
   };
 
   public removeAllComponents = () => {
-    if (this._manager === null || this._manager === undefined) {
-      throw new Error("Can't perform actions on Entity with no EntityManager");
-    }
-    this._manager.entityRemoveAllComponents(this);
+    this.assertManagerExists();
+    this._manager!.entityRemoveAllComponents(this);
   };
 
   public hasAllComponents = (componentClasses: Function[]) => {
     let hasAllComponents = true;
 
-    // TODO: This seems really bad O(n^2), we should prolly
+    // TODO: This seems really bad as O(n^2), we should prolly
     // be storing components by class name under the hood here
     componentClasses.forEach((componentClass) => {
       hasAllComponents = hasAllComponents && this.hasComponent(componentClass);
@@ -65,13 +59,15 @@ export class Entity {
   };
 
   public hasComponent = (componentClass: Function) => {
-    for (const component of this._components) {
-      if (component instanceof componentClass) {
-        return true;
-      }
-    }
+    // // TODO: Why tf are we doing it this way? We could just
+    // // be accessing the component from the map?
+    // for (const component of this._components) {
+    //   if (component instanceof componentClass) {
+    //     return true;
+    //   }
+    // }
 
-    return false;
+    return this._componentMap[componentClass.name] !== undefined;
   };
 
   public hasTag = (tag: string) => {
@@ -79,27 +75,27 @@ export class Entity {
   };
 
   public addTag = (tag: string) => {
-    if (this._manager === null || this._manager === undefined) {
-      throw new Error("Can't perform actions on Entity with no EntityManager");
-    }
-    this._manager.entityAddTag(this, tag);
+    this.assertManagerExists();
+    this._manager!.entityAddTag(this, tag);
 
     return this;
   };
 
   public removeTag = (tag: string) => {
-    if (this._manager === null || this._manager === undefined) {
-      throw new Error("Can't perform actions on Entity with no EntityManager");
-    }
-    this._manager.entityRemoveTag(this, tag);
+    this.assertManagerExists();
+    this._manager!.entityRemoveTag(this, tag);
 
     return this;
   };
 
   public remove = () => {
+    this.assertManagerExists();
+    this._manager!.removeEntity(this);
+  };
+
+  private assertManagerExists = () => {
     if (this._manager === null || this._manager === undefined) {
       throw new Error("Can't perform actions on Entity with no EntityManager");
     }
-    this._manager.removeEntity(this);
   };
 }
