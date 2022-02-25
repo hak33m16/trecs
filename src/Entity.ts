@@ -1,6 +1,10 @@
 import { Component } from "./Component";
 import { EntityManager } from "./EntityManager";
 
+interface TypeStore<T> extends Function {
+  new (...args: any[]): T;
+}
+
 export interface ComponentMap {
   [name: string]: Component;
 }
@@ -13,19 +17,17 @@ export class Entity {
   /* Internal fields */
 
   public _manager: EntityManager | null;
-  public _components: Component[];
   public _tags: string[];
   public _componentMap: ComponentMap;
 
   constructor(manager: EntityManager | null = null) {
     this.id = Entity.nextId++;
     this._manager = manager;
-    this._components = [];
     this._tags = [];
     this._componentMap = {};
   }
 
-  public component<T extends Component>(classRef: Function): T {
+  public component<T extends Component>(classRef: TypeStore<T>): T | undefined {
     return this._componentMap[classRef.name] as T;
   }
 
@@ -46,27 +48,17 @@ export class Entity {
     this._manager!.entityRemoveAllComponents(this);
   };
 
-  public hasAllComponents = (componentClasses: Function[]) => {
+  public hasAllComponents = (...componentClasses: Function[]) => {
     let hasAllComponents = true;
 
-    // TODO: This seems really bad as O(n^2), we should prolly
-    // be storing components by class name under the hood here
-    componentClasses.forEach((componentClass) => {
-      hasAllComponents = hasAllComponents && this.hasComponent(componentClass);
-    });
+    for (const clazz of componentClasses) {
+      hasAllComponents = hasAllComponents && this.hasComponent(clazz);
+    }
 
     return hasAllComponents;
   };
 
   public hasComponent = (componentClass: Function) => {
-    // // TODO: Why tf are we doing it this way? We could just
-    // // be accessing the component from the map?
-    // for (const component of this._components) {
-    //   if (component instanceof componentClass) {
-    //     return true;
-    //   }
-    // }
-
     return this._componentMap[componentClass.name] !== undefined;
   };
 

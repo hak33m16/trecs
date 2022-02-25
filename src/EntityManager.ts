@@ -96,9 +96,14 @@ export class EntityManager {
     const taggedEntities = this.tags[tag];
     if (!taggedEntities) return;
 
+    // TODO: Instead of looking for entities at indeces, why
+    // aren't we using entity IDs for constant time access?
     const index = taggedEntities.indexOf(entity);
     if (index === -1) return;
 
+    // Splicing the array seems pretty terrible, definitely
+    // forces us to recopy everything... Can we just have
+    // a set of IDs for each tag?
     taggedEntities.splice(index, 1);
     entity._tags.splice(entity._tags.indexOf(tag), 1);
   };
@@ -106,9 +111,9 @@ export class EntityManager {
   public entityAddComponent = (entity: Entity, component: Component) => {
     // If this entity already has this component we're returning,
     // but shouldn't we throw an error...? Could be misleading
-    if (entity._components.includes(component)) return;
+    if (entity._componentMap[component.constructor.name]) return;
 
-    entity._components.push(component);
+    entity._componentMap[component.constructor.name] = component;
 
     const componentName = component.constructor.name;
     entity._componentMap[componentName] = component;
@@ -122,7 +127,7 @@ export class EntityManager {
       if (!group.componentClasses.includes(component.constructor)) {
         continue;
       }
-      if (!entity.hasAllComponents(group.componentClasses)) {
+      if (!entity.hasAllComponents(...group.componentClasses)) {
         continue;
       }
       // TODO: Calls like this seem really inefficient. Why aren't we using
@@ -140,16 +145,15 @@ export class EntityManager {
   };
 
   public entityRemoveAllComponents = (entity: Entity): void => {
-    const components = entity._components;
+    const components = entity._componentMap;
 
-    components.forEach((c) => {
-      entity.removeComponent(c);
+    Object.keys(components).forEach((componentName) => {
+      delete components[componentName];
     });
   };
 
   public entityRemoveComponent = (entity: Entity, component: Component) => {
-    const index = entity._components.indexOf(component);
-    if (index === -1) return;
+    if (!entity._componentMap[component.constructor.name]) return;
 
     // entity.emit('component removed', component)
     for (const groupName in this.groups) {
@@ -159,7 +163,7 @@ export class EntityManager {
       if (group.componentClasses.indexOf(component.constructor) === -1) {
         continue;
       }
-      if (!entity.hasAllComponents(group.componentClasses)) {
+      if (!entity.hasAllComponents(...group.componentClasses)) {
         continue;
       }
 
@@ -169,12 +173,10 @@ export class EntityManager {
       }
     }
 
-    const className = component.constructor.name;
-    entity._components.splice(index, 1);
-    delete entity._componentMap[className];
+    delete entity._componentMap[component.constructor.name];
   };
 
-  public queryComponents = (componentClasses: Function[]) => {
+  public queryComponents = (...componentClasses: Function[]) => {
     const group =
       this.groups[this.groupKey(componentClasses)] ??
       this.indexGroup(componentClasses);
@@ -192,7 +194,7 @@ export class EntityManager {
     const group = (this.groups[key] = new Group(componentClasses));
 
     for (const entity of this.entities) {
-      if (entity.hasAllComponents(componentClasses)) {
+      if (entity.hasAllComponents(...componentClasses)) {
         group.entities.push(entity);
       }
     }
