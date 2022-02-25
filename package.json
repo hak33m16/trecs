@@ -1,6 +1,6 @@
 {
   "name": "trecs",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A TypeScript-first Entity Component System library.",
   "keywords": [
     "component",
@@ -28,22 +28,25 @@
       "role": "neutral forker"
     }
   ],
-  "directories": {
-    "test": "test"
-  },
   "scripts": {
     "build": "rm -rf lib/ && npx tsc",
-    "clean": "rm -rf lib/"
+    "clean": "rm -rf lib/",
+    "test": "jest --coverage"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
   "devDependencies": {
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
+    "@types/jest": "^27.4.1",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.3",
     "typescript": "^4.5.5"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:noffle/nano-ecs.git"
+    "url": "git@github.com:hak33m16/trecs.git"
   },
   "testling": {
     "browsers": [
@@ -59,11 +62,10 @@
     ],
     "files": "test/*.js"
   },
-  "dependencies": {
-    "reuse-pool": "^1.0.2",
-    "typedef": "~1.0.2"
-  },
   "files": [
     "/lib"
+  ],
+  "include": [
+    "/src/**/*"
   ]
 }
