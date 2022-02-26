@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { Entity, EntityID } from "./Entity";
+import { Entity, EntityID, TypeStore } from "./Entity";
 
 interface TagPool {
   [tag: string]: Map<EntityID, Entity>;
@@ -58,6 +58,7 @@ export class EntityManager {
     }
 
     entity._manager = null;
+    entity._tags.clear();
     // TODO: Reuse the pool idea later on
     //this.entityPool.recycle(entity)
     //entity.removeAllListeners()
@@ -131,13 +132,17 @@ export class EntityManager {
     });
   };
 
-  public entityRemoveComponent = (entity: Entity, component: Component) => {
-    if (!entity._componentMap[component.constructor.name]) return;
+  public entityRemoveComponent<T extends Component>(
+    entity: Entity,
+    classRef: TypeStore<T>
+  ) {
+    if (!entity._componentMap[classRef.name]) return;
+
+    console.log("mctest");
 
     this.groups.forEach((group) => {
       // TODO: Double check that component.constructor is what we want here
-      const groupHasComponent =
-        group.componentClasses.indexOf(component.constructor) !== -1;
+      const groupHasComponent = group.componentClasses.indexOf(classRef) !== -1;
       const entityHasAllComponents = entity.hasAllComponents(
         ...group.componentClasses
       );
@@ -148,8 +153,8 @@ export class EntityManager {
     });
     // entity.emit('component removed', component)
 
-    delete entity._componentMap[component.constructor.name];
-  };
+    delete entity._componentMap[classRef.name];
+  }
 
   public queryComponents = (...componentClasses: Function[]) => {
     const group =

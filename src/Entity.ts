@@ -1,7 +1,7 @@
 import { Component } from "./Component";
 import { EntityManager } from "./EntityManager";
 
-interface TypeStore<T> extends Function {
+export interface TypeStore<T> extends Function {
   new (...args: any[]): T;
 }
 
@@ -22,7 +22,7 @@ export class Entity {
   public _tags: Set<string>;
   public _componentMap: ComponentMap;
 
-  constructor(manager: EntityManager | null = null) {
+  constructor(manager: EntityManager) {
     this.id = Entity.nextId++;
     this._manager = manager;
     this._tags = new Set();
@@ -40,10 +40,10 @@ export class Entity {
     return this;
   };
 
-  public removeComponent = (component: Component) => {
+  public removeComponent<T extends Component>(classRef: TypeStore<T>) {
     this.assertManagerExists();
-    this._manager!.entityRemoveComponent(this, component);
-  };
+    this._manager!.entityRemoveComponent(this, classRef);
+  }
 
   public removeAllComponents = () => {
     this.assertManagerExists();
