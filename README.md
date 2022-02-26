@@ -8,89 +8,73 @@
 
 ## Installation
 
-Works on the server or the browser (via [Browserify](http://browserify.org)):
-
 ```
-npm install nano-ecs
+npm install trecs
 ```
-
 
 ## Usage
 
-Manage your entities via a `nano` entity manager instance:
+Manage your entities via an `EntityManager` instance:
 
-```javascript
-var nano = require('nano-ecs')
+```ts
+import { EntityManager } from "trecs"
 
-var world = nano()
+const world = new EntityManager()
 ```
-
 
 ### Creating Entities
 
 Create an entity, bereft of components:
 
-```javascript
-var hero = world.createEntity();
+```ts
+const hero = world.createEntity();
 ```
-
 
 ### Adding Components
 
-A component is just a function that defines whatever properties on `this` that
+Components must extend the base class `Component` for type-safety reasons.
+
+A component is just a class that defines whatever properties on `this` that
 it'd like:
 
-```javascript
-function PlayerControlled()
-{
-  this.gamepad = 1;
+```ts
+class PlayerControlled extends Component {
+  this.gamepad: number = 1;
 }
 ```
 
-```javascript
-function Sprite()
-{
-  this.image = 'hero.png';
+```ts
+class Sprite extends Component {
+  this.image: string = 'hero.png';
 }
 ```
 
 Components are added using `addComponent` and support chaining:
 
-```javascript
-hero.addComponent(PlayerControlled).addComponent(Sprite);
+```ts
+hero.addComponent(new PlayerControlled()).addComponent(new Sprite());
 ```
 
-All parameters after `Sprite` are sent to the constructor. E.g.
+Retrieve components in a type-safe way:
 
-```js
-function Sprite (entity, imageName) {
-  this.image = imageName
-}
-
-entity.addComponent(Sprite, 'hero.png')
-```
-
-Preferring convention over configuration, `nano-ecs` will add an instance member
-that is the name of the component constructor, camelCased:
-
-```javascript
-hero.playerControlled.gamepad = 2;
-hero.sprite.image === 'hero.png'; // true
+```ts
+hero.component(PlayerControlled).gamepad = 2
+hero.component(Sprite).image === 'hero.png'; // true
 ```
 
 Entities can be tagged with a string for fast retrieval:
 
-```javascript
+```ts
 hero.addTag('player');
 
 ...
 
-var hero = world.queryTag('player')[0]
+const hero = Array.from(world.queryTag('player').values())[0] // This syntax will get better, I promise
 ```
 
 You can also remove components and tags in much the same way:
 
-```javascript
+```ts
 hero.removeComponent(Sprite);
 hero.removeTag('player');
 ```
@@ -98,16 +82,15 @@ hero.removeTag('player');
 `hasComponent` will efficiently determine if an entity has a specific single
 component:
 
-```javascript
+```ts
 if (hero.hasComponent(Transform)) { ... }
 ```
 
 A set of components can also be quickly checked:
 
-```javascript
-if (hero.hasAllComponents([Transform, Sprite])) { ... }
+```ts
+if (hero.hasAllComponents(Transform, Sprite)) { ... }
 ```
-
 
 ### Querying Entities
 
@@ -118,45 +101,40 @@ Entity queries return an array of entities.
 
 Get all entities that have a specific set of components:
 
-```javascript
-var toDraw = entities.queryComponents([Transform, Sprite]);
+```ts
+const toDraw = entities.queryComponents(Transform, Sprite);
 ```
 
 Get all entities with a certain tag:
 
-```javascript
-var enemies = entities.queryTag('enemy');
+```ts
+const enemies = entities.queryTag('enemy');
 ```
-
 
 ### Removing Entities
 
-```javascript
+```ts
 hero.remove();
 ```
 
-
 ### Components
 
-Any object constructor can be used as a component--nothing special required.
-Components should be lean data containers, leaving all the heavy lifting for the
-systems.
-
+As mentioned above, components must extend the base class `Component` for type-safety reasons. It is highly recommended that components are lean data containers, leaving all the heavy lifting for systems. If interface names weren't erased after transpilation, this library would've used them instead of classes.
 
 ### Creating Systems
 
-In `nano-ecs`, there is no formal notion of a system. A system is considered any
+In `trecs`, there is no formal notion of a system. A system is considered any
 context in which entities and their components are updated. As to how this
-occurs will vary depending on your use.
+occurs will vary depending on your use. (Note that this will change soon, and the goal of this library is to provide this functionality.)
 
 In the example of a game, you could maintain a list of systems that are
 instantiated with a reference to the entity's world:
 
-```
+```ts
 function PhysicsSystem (world)
 {
   this.update = function (dt, time) {
-    var candidates = world.queryComponents([Transform, RigidBody]);
+    var candidates = world.queryComponents(Transform, RigidBody);
 
     candidates.forEach(function(entity) {
       ...
@@ -165,117 +143,15 @@ function PhysicsSystem (world)
 }
 ```
 
-
 ### Events
 
-All entities can act as event emitters. One part of the game code can raise an
-event on an entity that a specific component or other system is free to handle:
-
-```javascript
-function Health () {
-  this.hp = 100
-}
-
-var entity = world.createEntity()
-
-entity.addComponent(Health)
-
-entity.on('damage', function (amount) {
-  this.hp -= amount
-  if (this.hp < 0) {
-    entity.emit('death')
-  }
-})
-```
-
-
-## Entity Manager API
-
-```javascript
-var world = require('nano-ecs')()
-```
-
-### world.createEntity()
-
-Create a new, component-less entity.
-
-### world.removeAllEntities()
-
-Remove all entities from the world.
-
-### world.removeEntity(entity)
-
-Remove a specific entity by reference.
-
-### world.removeEntitiesByTag(tag)
-
-Remove all entities with a given tag.
-
-### world.queryComponents(components=[])
-
-Returns a list of all entities with the full list of components given.
-
-### world.queryTag(tag)
-
-Returns a list of all entities with the given tag.
-
-### world.count()
-
-Returns the total number of entities in the world.
-
-
-## Entity API
-
-```javascript
-var entity = require('nano-ecs')().createEntity()
-```
-
-### entity.remove()
-
-Remove the entity from the world.
-
-### entity.addComponent(TComponent)
-
-Add a component to an entity, by constructor function name.
-
-### entity.removeComponent(TComponent)
-
-Remove a component from the entity, by constructor function name.
-
-### entity.hasComponent(TComponent)
-
-Returns true if the entity has the component (by constructor function name),
-false otherwise.
-
-### entity.hasAllComponents(components=[])
-
-Returns true if the entity has all of the components (by constructor function
-name), false otherwise.
-
-### entity.hasTag(tag)
-
-Returns true if the entity has the given tag, false otherwise.
-
-### entity.addTag(tag)
-
-Adds the given tag to the entity.
-
-### entity.removeTag(tag)
-
-Remove the given tag from the entity.
-
+Event management is not yet built in, but will follow a structure very similar to that of the `entityx` C++ library.
 
 ## Testing
 
-Testing is done with [Tape](http://github.com/substack/tape) or any other
-software supporting the [Test Anything Protocol](https://testanything.org) and
-can be run with the command `npm test`. There is also a pre-commit hook that
-will ensure tests pass before any commit is permitted.
-
+Testing is done with jest and can be run using the `npm run test` command.
 
 ## License
 Copyright 2014 Brandon Valosek, forked and modified by Stephen Whitmore. Forked and modified more by Hakeem Badran.
 
 **trecs** is released under the MIT license.
-
-

@@ -1,7 +1,7 @@
 import { Component } from "./Component";
 import { EntityManager } from "./EntityManager";
 
-interface TypeStore<T> extends Function {
+export interface TypeStore<T> extends Function {
   new (...args: any[]): T;
 }
 
@@ -9,21 +9,23 @@ export interface ComponentMap {
   [name: string]: Component;
 }
 
+export type EntityID = number;
+
 export class Entity {
   static nextId: number = 0;
 
-  public id: number;
+  public id: EntityID;
 
   /* Internal fields */
 
   public _manager: EntityManager | null;
-  public _tags: string[];
+  public _tags: Set<string>;
   public _componentMap: ComponentMap;
 
-  constructor(manager: EntityManager | null = null) {
+  constructor(manager: EntityManager) {
     this.id = Entity.nextId++;
     this._manager = manager;
-    this._tags = [];
+    this._tags = new Set();
     this._componentMap = {};
   }
 
@@ -31,6 +33,15 @@ export class Entity {
     return this._componentMap[classRef.name] as T;
   }
 
+  // TODO: Prevent users from being able to pass in
+  // a component subclass here. Should we instead
+  // only accept subclasses and return a new component
+  // construction? Only problem is that this will
+  // require every component to have an empty constructor,
+  // but I think that's something I'm ok with enforcing.
+  // Components should be dumb structs, and nothing else.
+  // If we go that route, we should also start returning
+  // the new component here.
   public addComponent = (component: Component) => {
     this.assertManagerExists();
     this._manager!.entityAddComponent(this, component);
@@ -38,10 +49,10 @@ export class Entity {
     return this;
   };
 
-  public removeComponent = (component: Component) => {
+  public removeComponent<T extends Component>(classRef: TypeStore<T>) {
     this.assertManagerExists();
-    this._manager!.entityRemoveComponent(this, component);
-  };
+    this._manager!.entityRemoveComponent(this, classRef);
+  }
 
   public removeAllComponents = () => {
     this.assertManagerExists();
@@ -63,7 +74,7 @@ export class Entity {
   };
 
   public hasTag = (tag: string) => {
-    return this._tags.indexOf(tag) !== -1;
+    return this._tags.has(tag);
   };
 
   public addTag = (tag: string) => {

@@ -1,25 +1,21 @@
 import { Component } from "./Component";
-import { Entity } from "./Entity";
+import { Entity, EntityID, TypeStore } from "./Entity";
 
 interface TagPool {
-  [tag: string]: Entity[];
-}
-
-interface GroupPool {
-  [name: string]: Group;
+  [tag: string]: Map<EntityID, Entity>;
 }
 
 export class EntityManager {
   private tags: TagPool;
-  private entities: Entity[];
-  private groups: GroupPool;
+  private entities: Map<EntityID, Entity>;
+  private groups: Map<string, Group>;
   // private entityPool: any;
   private groupKeyMap: WeakMap<Function[], string>;
 
   constructor() {
     this.tags = {};
-    this.entities = [];
-    this.groups = {};
+    this.entities = new Map();
+    this.groups = new Map();
     // this.entityPool = {};
     this.groupKeyMap = new WeakMap();
   }
@@ -28,118 +24,107 @@ export class EntityManager {
     // TODO: Copy over the entity pool idea. Prolly useful
     // for not creating tons of new objects
     const entity = new Entity(this);
-    this.entities.push(entity);
+    this.entities.set(entity.id, entity);
 
     return entity;
   };
 
   public removeEntitiesByTag = (tag: string): void => {
     const taggedEntities = this.tags[tag];
+    if (!taggedEntities) return;
 
-    if (!taggedEntities) {
-      return;
-    }
-
-    // TODO: Make sure that doing this forward instead
-    // of backwards is ok?
-    for (const entity of taggedEntities) {
+    taggedEntities.forEach((entity) => {
       entity.remove();
-    }
+    });
   };
 
   public removeAllEntities = () => {
-    for (const entity of this.entities) {
+    this.entities.forEach((entity) => {
       entity.remove();
-    }
+    });
   };
 
   public removeEntity = (entity: Entity): void => {
-    const index = this.entities.indexOf(entity);
-
-    if (index === -1) {
+    if (!this.entities.has(entity.id)) {
       throw new Error("Tried to remove entity not in list");
     }
 
     this.entityRemoveAllComponents(entity);
-
-    this.entities.splice(index, 1);
+    this.entities.delete(entity.id);
 
     for (const tag in this.tags) {
       const taggedEntities = this.tags[tag];
-      const entityTagIndex = taggedEntities.indexOf(entity);
-      if (entityTagIndex !== -1) {
-        taggedEntities.splice(entityTagIndex, 1);
-      }
+      taggedEntities.delete(entity.id);
     }
 
     entity._manager = null;
-    // TODO: figure out wtf this pool is
+    entity._tags.clear();
+    // TODO: Reuse the pool idea later on
     //this.entityPool.recycle(entity)
     //entity.removeAllListeners()
   };
 
   public entityAddTag = (entity: Entity, tag: string) => {
+    if (!this.tags[tag]) {
+      this.tags[tag] = new Map();
+    }
     const taggedEntities = this.tags[tag];
 
-    if (!taggedEntities) {
-      // Hmmm, is our taggedEntities pointing to this same reference...?
-      this.tags[tag] = [];
-    }
+    // Entity is already tagged
+    if (taggedEntities.has(entity.id)) return;
 
-    if (taggedEntities.indexOf(entity) !== -1) return;
-
-    taggedEntities.push(entity);
-    entity._tags.push(tag);
+    taggedEntities.set(entity.id, entity);
+    entity._tags.add(tag);
   };
 
   public entityRemoveTag = (entity: Entity, tag: string) => {
     const taggedEntities = this.tags[tag];
     if (!taggedEntities) return;
 
-    // TODO: Instead of looking for entities at indeces, why
-    // aren't we using entity IDs for constant time access?
-    const index = taggedEntities.indexOf(entity);
-    if (index === -1) return;
+    // Entity does not have this tag
+    if (!taggedEntities.has(entity.id)) return;
 
-    // Splicing the array seems pretty terrible, definitely
-    // forces us to recopy everything... Can we just have
-    // a set of IDs for each tag?
-    taggedEntities.splice(index, 1);
-    entity._tags.splice(entity._tags.indexOf(tag), 1);
+    // Remove it from our tag map
+    taggedEntities.delete(entity.id);
+    // Remove the tag reference on the entity
+    entity._tags.delete(tag);
+  };
+
+  public queryTag = (tag: string) => {
+    return this.tags[tag];
   };
 
   public entityAddComponent = (entity: Entity, component: Component) => {
-    // If this entity already has this component we're returning,
-    // but shouldn't we throw an error...? Could be misleading
-    if (entity._componentMap[component.constructor.name]) return;
-
+    if (entity._componentMap[component.constructor.name]) {
+      throw new Error(
+        `Entity ${entity.id} already has component ${component.constructor.name}`
+      );
+    }
     entity._componentMap[component.constructor.name] = component;
 
-    const componentName = component.constructor.name;
-    entity._componentMap[componentName] = component;
-
-    for (const groupName in this.groups) {
-      const group = this.groups[groupName];
-
+    // Note: We're lazily indexing entities/groups on queries, rather than
+    // on each component addition. Now that we're using the map method,
+    // it probably makes more sense to just do it here
+    this.groups.forEach((group) => {
       // Only add this entity to a group index if this component is in the group,
       // this entity has all the components of the group, and its not already in
       // the index.
-      if (!group.componentClasses.includes(component.constructor)) {
-        continue;
-      }
-      if (!entity.hasAllComponents(...group.componentClasses)) {
-        continue;
-      }
-      // TODO: Calls like this seem really inefficient. Why aren't we using
-      // a hashmap to store entity IDs in groups? Could be getting instant
-      // access for each group. Currently, if groups = g, and entities = e
-      // our access time is O(g*e), could be O(g + e)
-      if (group.entities.includes(entity)) {
-        continue;
-      }
+      const componentIsInGroup = group.componentClasses.includes(
+        component.constructor
+      );
+      const entityHasAllComponents = entity.hasAllComponents(
+        ...group.componentClasses
+      );
+      const entityNotAlreadyInGroup = !group.entities.has(entity.id);
 
-      group.entities.push(entity);
-    }
+      if (
+        componentIsInGroup &&
+        entityHasAllComponents &&
+        entityNotAlreadyInGroup
+      ) {
+        group.entities.set(entity.id, entity);
+      }
+    });
 
     //entity.emit('component added', Component)
   };
@@ -152,52 +137,56 @@ export class EntityManager {
     });
   };
 
-  public entityRemoveComponent = (entity: Entity, component: Component) => {
-    if (!entity._componentMap[component.constructor.name]) return;
+  public entityRemoveComponent<T extends Component>(
+    entity: Entity,
+    classRef: TypeStore<T>
+  ) {
+    if (!entity._componentMap[classRef.name]) return;
 
+    this.groups.forEach((group) => {
+      // TODO: Double check that component.constructor is what we want here
+      const groupHasComponent = group.componentClasses.indexOf(classRef) !== -1;
+      const entityHasAllComponents = entity.hasAllComponents(
+        ...group.componentClasses
+      );
+
+      if (groupHasComponent && entityHasAllComponents) {
+        group.entities.delete(entity.id);
+      }
+    });
     // entity.emit('component removed', component)
-    for (const groupName in this.groups) {
-      const group = this.groups[groupName];
 
-      // TODO: Double check that component.constructor is what we want to store here
-      if (group.componentClasses.indexOf(component.constructor) === -1) {
-        continue;
-      }
-      if (!entity.hasAllComponents(...group.componentClasses)) {
-        continue;
-      }
-
-      const location = group.entities.indexOf(entity);
-      if (location !== -1) {
-        group.entities.splice(location, 1);
-      }
-    }
-
-    delete entity._componentMap[component.constructor.name];
-  };
+    delete entity._componentMap[classRef.name];
+  }
 
   public queryComponents = (...componentClasses: Function[]) => {
     const group =
-      this.groups[this.groupKey(componentClasses)] ??
+      this.groups.get(this.groupKey(componentClasses)) ??
       this.indexGroup(componentClasses);
 
     return group.entities;
   };
 
-  public count = () => this.entities.length;
+  public count = () => this.entities.size;
 
-  private indexGroup = (componentClasses: Function[]) => {
+  private indexGroup = (componentClasses: Function[]): Group => {
     const key = this.groupKey(componentClasses);
 
-    if (this.groups[key]) return;
-
-    const group = (this.groups[key] = new Group(componentClasses));
-
-    for (const entity of this.entities) {
-      if (entity.hasAllComponents(...componentClasses)) {
-        group.entities.push(entity);
-      }
+    if (this.groups.has(key)) {
+      return this.groups.get(key)!;
     }
+
+    this.groups.set(key, new Group(componentClasses));
+    const group = this.groups.get(key)!;
+
+    this.entities.forEach((entity) => {
+      if (entity.hasAllComponents(...componentClasses)) {
+        group.entities.set(entity.id, entity);
+      }
+    });
+
+    // Guaranteed non-null because we set its value above
+    return group!;
   };
 
   private groupKey = (componentClasses: Function[]) => {
@@ -223,10 +212,10 @@ export class EntityManager {
 
 export class Group {
   public componentClasses: Function[];
-  public entities: Entity[];
+  public entities: Map<EntityID, Entity>;
 
-  constructor(componentClasses: Function[] = [], entities: Entity[] = []) {
+  constructor(componentClasses: Function[]) {
     this.componentClasses = componentClasses;
-    this.entities = entities;
+    this.entities = new Map();
   }
 }
