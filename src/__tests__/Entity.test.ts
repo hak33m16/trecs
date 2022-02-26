@@ -10,9 +10,11 @@ describe("Entity", () => {
     entityManager = new EntityManager();
   });
 
-  test("entity ids start at 0", () => {
+  test("entity ids auto increment", () => {
     const entity = entityManager.createEntity();
-    expect(entity.id).toEqual(0);
+
+    const secondEntity = entityManager.createEntity();
+    expect(secondEntity.id).toEqual(entity.id + 1);
   });
 
   test("can add component to entity, retrieve it, and modifications persist", () => {
@@ -90,9 +92,40 @@ describe("Entity", () => {
     expect(entity._manager).toBeDefined();
     entity.remove();
 
-    expect(entity._manager).toEqual(null);
+    expect(entity._manager).toBeNull();
     expect(() => entity.addTag("")).toThrow(
       "Can't perform actions on Entity with no EntityManager"
     );
+  });
+
+  test("can add multiple components to entity", () => {
+    const entity = entityManager.createEntity();
+
+    expect(entity.component(FirstDummyComponent)).toEqual(undefined);
+    expect(entity.component(SecondDummyComponent)).toEqual(undefined);
+
+    const firstComponent = new FirstDummyComponent();
+    const secondComponent = new SecondDummyComponent();
+
+    entity.addComponent(firstComponent);
+    entity.addComponent(secondComponent);
+
+    console.log(entityManager["groups"]);
+
+    expect(entity.component(FirstDummyComponent)).toEqual(firstComponent);
+    expect(entity.component(SecondDummyComponent)).toEqual(secondComponent);
+  });
+
+  test("removing tag that doesnt exist shouldnt throw", () => {
+    entityManager.createEntity().removeTag("nonexistent");
+  });
+
+  test("removing a tag this entity doesnt have shouldnt throw", () => {
+    entityManager.createEntity().addTag("testtag");
+    entityManager.createEntity().removeTag("testtag");
+  });
+
+  test("removing a component that an entity doesnt have shouldnt throw", () => {
+    entityManager.createEntity().removeComponent(FirstDummyComponent);
   });
 });

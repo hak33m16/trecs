@@ -31,7 +31,7 @@
   "scripts": {
     "build": "rm -rf lib/ && npx tsc",
     "clean": "rm -rf lib/",
-    "test": "jest --coverage"
+    "test": "jest --coverage --verbose"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

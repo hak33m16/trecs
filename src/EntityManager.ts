@@ -95,15 +95,16 @@ export class EntityManager {
   };
 
   public entityAddComponent = (entity: Entity, component: Component) => {
-    // If this entity already has this component we're returning,
-    // but shouldn't we throw an error...? Could be misleading
-    if (entity._componentMap[component.constructor.name]) return;
-
+    if (entity._componentMap[component.constructor.name]) {
+      throw new Error(
+        `Entity ${entity.id} already has component ${component.constructor.name}`
+      );
+    }
     entity._componentMap[component.constructor.name] = component;
 
-    const componentName = component.constructor.name;
-    entity._componentMap[componentName] = component;
-
+    // Note: We're lazily indexing entities/groups on queries, rather than
+    // on each component addition. Now that we're using the map method,
+    // it probably makes more sense to just do it here
     this.groups.forEach((group) => {
       // Only add this entity to a group index if this component is in the group,
       // this entity has all the components of the group, and its not already in
@@ -114,9 +115,13 @@ export class EntityManager {
       const entityHasAllComponents = entity.hasAllComponents(
         ...group.componentClasses
       );
-      const entityNotInGroup = !group.entities.has(entity.id);
+      const entityNotAlreadyInGroup = !group.entities.has(entity.id);
 
-      if (componentIsInGroup && entityHasAllComponents && entityNotInGroup) {
+      if (
+        componentIsInGroup &&
+        entityHasAllComponents &&
+        entityNotAlreadyInGroup
+      ) {
         group.entities.set(entity.id, entity);
       }
     });
@@ -137,8 +142,6 @@ export class EntityManager {
     classRef: TypeStore<T>
   ) {
     if (!entity._componentMap[classRef.name]) return;
-
-    console.log("mctest");
 
     this.groups.forEach((group) => {
       // TODO: Double check that component.constructor is what we want here
@@ -161,26 +164,29 @@ export class EntityManager {
       this.groups.get(this.groupKey(componentClasses)) ??
       this.indexGroup(componentClasses);
 
-    return group?.entities;
+    return group.entities;
   };
 
   public count = () => this.entities.size;
 
-  private indexGroup = (componentClasses: Function[]) => {
+  private indexGroup = (componentClasses: Function[]): Group => {
     const key = this.groupKey(componentClasses);
 
-    if (this.groups.has(key)) return;
+    if (this.groups.has(key)) {
+      return this.groups.get(key)!;
+    }
 
     this.groups.set(key, new Group(componentClasses));
-    const group = this.groups.get(key);
+    const group = this.groups.get(key)!;
 
     this.entities.forEach((entity) => {
       if (entity.hasAllComponents(...componentClasses)) {
-        group?.entities.set(entity.id, entity);
+        group.entities.set(entity.id, entity);
       }
     });
 
-    return group;
+    // Guaranteed non-null because we set its value above
+    return group!;
   };
 
   private groupKey = (componentClasses: Function[]) => {
@@ -208,7 +214,7 @@ export class Group {
   public componentClasses: Function[];
   public entities: Map<EntityID, Entity>;
 
-  constructor(componentClasses: Function[] = []) {
+  constructor(componentClasses: Function[]) {
     this.componentClasses = componentClasses;
     this.entities = new Map();
   }
