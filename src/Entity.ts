@@ -9,21 +9,23 @@ export interface ComponentMap {
   [name: string]: Component;
 }
 
+export type EntityID = number;
+
 export class Entity {
   static nextId: number = 0;
 
-  public id: number;
+  public id: EntityID;
 
   /* Internal fields */
 
   public _manager: EntityManager | null;
-  public _tags: string[];
+  public _tags: Set<string>;
   public _componentMap: ComponentMap;
 
   constructor(manager: EntityManager | null = null) {
     this.id = Entity.nextId++;
     this._manager = manager;
-    this._tags = [];
+    this._tags = new Set();
     this._componentMap = {};
   }
 
@@ -63,7 +65,7 @@ export class Entity {
   };
 
   public hasTag = (tag: string) => {
-    return this._tags.indexOf(tag) !== -1;
+    return this._tags.has(tag);
   };
 
   public addTag = (tag: string) => {

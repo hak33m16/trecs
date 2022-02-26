@@ -48,24 +48,7 @@
     "type": "git",
     "url": "git@github.com:hak33m16/trecs.git"
   },
-  "testling": {
-    "browsers": [
-      "android-browser/latest",
-      "chrome/28..canary",
-      "firefox/23..nightly",
-      "ie/8..latest",
-      "ipad/latest",
-      "iphone/latest",
-      "opera/latest",
-      "opera/next",
-      "safari/5.1..latest"
-    ],
-    "files": "test/*.js"
-  },
   "files": [
     "/lib"
-  ],
-  "include": [
-    "/src/**/*"
   ]
 }

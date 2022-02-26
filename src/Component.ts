@@ -1,3 +1,1 @@
-export class Component {
-  constructor() {}
-}
+export class Component {}
