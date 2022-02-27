@@ -28,3 +28,7 @@ jobs:
         run: npm run test
       - name: npm build
         run: npm run build
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        verbose: true
+        directory: ./coverage/
