@@ -1,4 +1,6 @@
-[![Build Status](https://github.com/hak33m16/trecs/workflows/build/badge.svg?branch=master)](https://github.com/hak33m16/trecs/actions?query=workflow%3Abuild+branch%3Amaster) [![codecov](https://codecov.io/gh/hak33m16/trecs/branch/master/graph/badge.svg?token=QG2BOJPZC3)](https://codecov.io/gh/hak33m16/trecs) [![Code Climate](https://codeclimate.com/github/hak33m16/trecs/badges/gpa.svg)](https://codeclimate.com/github/hak33m16/trecs) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) [![NPM Version](https://badge.fury.io/js/trecs.svg?style=flat)](https://npmjs.org/package/trecs)
+[![Build Status](https://github.com/hak33m16/trecs/workflows/build/badge.svg?branch=master)](https://github.com/hak33m16/trecs/actions?query=workflow%3Abuild+branch%3Amaster) [![codecov](https://codecov.io/gh/hak33m16/trecs/branch/master/graph/badge.svg?token=QG2BOJPZC3)](https://codecov.io/gh/hak33m16/trecs) [![Code Climate](https://codeclimate.com/github/hak33m16/trecs/badges/gpa.svg)](https://codeclimate.com/github/hak33m16/trecs)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) [![npm version](https://badge.fury.io/js/trecs.svg)](https://badge.fury.io/js/trecs)
 
 # TrECS
 
