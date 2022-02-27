@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/noffle/nano-ecs.svg?branch=master)](https://travis-ci.org/noffle/nano-ecs)
+[![Build Status](https://github.com/hak33m16/trecs/workflows/build/badge.svg?branch=master)](https://github.com/hak33m16/trecs/actions?query=workflow%3Abuild+branch%3Amaster)
 
 # TrECS
 
