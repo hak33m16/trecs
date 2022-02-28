@@ -1,4 +1,9 @@
 name: publish
+
+env:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#release
+  RELEASE: ${{ github.event.release.tag_info }}
+
 on:
   release:
     types: [created]
@@ -12,6 +17,11 @@ jobs:
         with:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
+        # Optionally, we could just publish using the version of the release, TBD
+      - name: Assert release version matches package.json
+        shell: bash
+        run: >-
+          [[ "grep version package.json | awk -F \" '{print $4}'" == "${RELEASE:1}" ]]
       - run: npm ci
       - run: npm run build
       - run: npm publish
