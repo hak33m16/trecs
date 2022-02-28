@@ -20,8 +20,11 @@ jobs:
         # Optionally, we could just publish using the version of the release, TBD
       - name: Assert release version matches package.json
         shell: bash
-        run: >-
-          export PACKAGE_VERSION=v$(grep version package.json | awk -F \" '{print $4}') && [[ $PACKAGE_VERSION == $RELEASE ]]
+        run: |-
+          export PACKAGE_VERSION=v$(grep version package.json | awk -F \" '{print $4}')
+          echo "Release version: ${RELEASE}"
+          echo "Package version: ${PACKAGE_VERSION}"
+          [[ $PACKAGE_VERSION == $RELEASE ]]
       - run: npm ci
       - run: npm run build
       - run: npm publish
