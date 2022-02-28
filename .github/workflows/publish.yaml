@@ -1,0 +1,32 @@
+name: publish
+
+env:
+  # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#release
+  RELEASE: ${{ github.event.release.tag_name }}
+
+on:
+  release:
+    types: [created]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16.x'
+          registry-url: 'https://registry.npmjs.org'
+        # Optionally, we could just publish using the version of the release, TBD
+      - name: Assert release version matches package.json
+        shell: bash
+        run: |-
+          export PACKAGE_VERSION=v$(grep version package.json | awk -F \" '{print $4}')
+          echo "Release version: ${RELEASE}"
+          echo "Package version: ${PACKAGE_VERSION}"
+          [[ $PACKAGE_VERSION == $RELEASE ]]
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
