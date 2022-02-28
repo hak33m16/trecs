@@ -2,7 +2,7 @@ name: publish
 
 env:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#release
-  RELEASE: ${{ github.event.release.tag_info }}
+  RELEASE: ${{ github.event.release.tag_name }}
 
 on:
   release:
