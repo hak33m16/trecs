@@ -21,8 +21,7 @@ jobs:
       - name: Assert release version matches package.json
         shell: bash
         run: >-
-          export PACKAGE_VERSION=v$(grep version package.json | awk -F \" '{print $4}')
-          [[ $PACKAGE_VERSION == $RELEASE ]]
+          export PACKAGE_VERSION=v$(grep version package.json | awk -F \" '{print $4}') && [[ $PACKAGE_VERSION == $RELEASE ]]
       - run: npm ci
       - run: npm run build
       - run: npm publish
