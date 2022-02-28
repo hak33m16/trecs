@@ -1,6 +1,6 @@
 {
   "name": "trecs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A TypeScript-first Entity Component System library.",
   "keywords": [
     "component",
