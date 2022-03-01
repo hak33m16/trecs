@@ -5,6 +5,36 @@ interface TagPool {
   [tag: string]: Map<EntityID, Entity>;
 }
 
+/**
+ * Wrapper class for a particular group of entities. Aims
+ * to have users not worry about the IDs of entities as
+ * they're iterating, while maintaining the efficiencies
+ * of the underlying implementations map iteration.
+ */
+class EntityGroup implements Iterable<Entity> {
+  private groupRef: Map<EntityID, Entity>;
+
+  constructor(groupRef: Map<EntityID, Entity>) {
+    this.groupRef = groupRef;
+  }
+
+  *[Symbol.iterator]() {
+    // Is this even saving us anything...? It looks like
+    // it has to create an array(s) anyways...
+    for (const [id, entity] of this.groupRef) {
+      yield entity;
+    }
+  }
+
+  get(id: EntityID): Entity | undefined {
+    return this.groupRef?.get(id);
+  }
+
+  size() {
+    return this.groupRef?.size ?? 0;
+  }
+}
+
 export class EntityManager {
   private tags: TagPool;
   private entities: Map<EntityID, Entity>;
@@ -91,7 +121,7 @@ export class EntityManager {
   };
 
   public queryTag = (tag: string) => {
-    return this.tags[tag];
+    return new EntityGroup(this.tags[tag]);
   };
 
   public entityAddComponent = (entity: Entity, component: Component) => {
@@ -144,7 +174,6 @@ export class EntityManager {
     if (!entity._componentMap[classRef.name]) return;
 
     this.groups.forEach((group) => {
-      // TODO: Double check that component.constructor is what we want here
       const groupHasComponent = group.componentClasses.indexOf(classRef) !== -1;
       const entityHasAllComponents = entity.hasAllComponents(
         ...group.componentClasses
@@ -164,7 +193,7 @@ export class EntityManager {
       this.groups.get(this.groupKey(componentClasses)) ??
       this.indexGroup(componentClasses);
 
-    return group.entities;
+    return new EntityGroup(group.entities);
   };
 
   public count = () => this.entities.size;
