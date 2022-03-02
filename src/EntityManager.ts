@@ -33,6 +33,17 @@ class EntityGroup implements Iterable<Entity> {
   size() {
     return this.groupRef?.size ?? 0;
   }
+
+  toArray(): Entity[] {
+    return this.groupRef ? Array.from(this.groupRef.values()) : [];
+  }
+
+  forEach(callbackfn: (value: Entity, index: number, array: Entity[]) => void) {
+    const arr = this.toArray();
+    for (let i = 0; i < arr.length; ++i) {
+      callbackfn(arr[i], i, arr);
+    }
+  }
 }
 
 export class EntityManager {

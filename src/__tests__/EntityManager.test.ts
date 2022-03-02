@@ -126,10 +126,7 @@ describe("EntityManager", () => {
     // Should reuse group
     secondEntity.addComponent(new FirstDummyComponent());
     expect(entityManager["groups"].size).toBe(1);
-    // TODO: Should this be expected behavior? Does it make
-    // more sense to create a new array on each query because
-    // of this behavior? Query results being affected by
-    // future modifications could be confusing
+
     expect(query.get(secondEntity.id)).toBe(secondEntity);
   });
 
@@ -207,5 +204,25 @@ describe("EntityManager", () => {
 
     expect(tagQuery.size()).toBe(0);
     expect(tagQuery.get(0)).toBeUndefined();
+  });
+
+  test("forEach allows us to iterate over entities", () => {
+    const entity = entityManager.createEntity();
+    entity.addComponent(new FirstDummyComponent());
+
+    const group = entityManager.queryComponents(FirstDummyComponent);
+    group.forEach((groupEntity) => {
+      expect(groupEntity).toBe(entity);
+    });
+  });
+
+  test("forEach and toArray on an undefined group is fine", () => {
+    // only way to get an undefined group ref since component
+    // groups will have an index/group auto created for them
+    const tagQuery = entityManager.queryTag("nonexistent");
+    expect(tagQuery["groupRef"]).toBeUndefined();
+
+    expect(() => tagQuery.forEach(() => {})).not.toThrow();
+    expect(() => tagQuery.toArray()).not.toThrow();
   });
 });
