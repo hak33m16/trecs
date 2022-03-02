@@ -43,7 +43,7 @@ describe("Entity", () => {
 
     entity.addTag("testtag");
     expect(entity.hasTag("testtag")).toEqual(true);
-    expect(entityManager.queryTag("testtag").get(entity.id)).toEqual(entity);
+    expect(entityManager.queryTag("testtag")?.get(entity.id)).toEqual(entity);
 
     entity.removeTag("testtag");
     expect(entity.hasTag("testtag")).toEqual(false);
