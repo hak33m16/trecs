@@ -51,10 +51,10 @@ class Sprite extends Component {
 }
 ```
 
-Components are added using `addComponent` and support chaining:
+Components are added using `addComponents`:
 
 ```ts
-hero.addComponent(new PlayerControlled()).addComponent(new Sprite());
+hero.addComponents(PlayerControlled, Sprite)
 ```
 
 Retrieve components in a type-safe way:
@@ -71,7 +71,7 @@ hero.addTag('player');
 
 ...
 
-const hero = Array.from(world.queryTag('player').values())[0] // This syntax will get better, I promise
+const hero = world.queryTag('player').toArray()[0]
 ```
 
 You can also remove components and tags in much the same way:
