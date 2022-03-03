@@ -26,8 +26,20 @@ class EntityGroup implements Iterable<Entity> {
     }
   }
 
-  get(id: EntityID): Entity | undefined {
+  get(entity: Entity): Entity | undefined {
+    return this.groupRef?.get(entity!.id);
+  }
+
+  getById(id: EntityID): Entity | undefined {
     return this.groupRef?.get(id);
+  }
+
+  has(entity: Entity): boolean {
+    return this.groupRef?.get(entity!.id) !== undefined;
+  }
+
+  hasById(id: EntityID): boolean {
+    return this.groupRef?.get(id) !== undefined;
   }
 
   size() {

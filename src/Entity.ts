@@ -33,18 +33,13 @@ export class Entity {
     return this._componentMap[classRef.name] as T;
   }
 
-  // TODO: Prevent users from being able to pass in
-  // a component subclass here. Should we instead
-  // only accept subclasses and return a new component
-  // construction? Only problem is that this will
-  // require every component to have an empty constructor,
-  // but I think that's something I'm ok with enforcing.
-  // Components should be dumb structs, and nothing else.
-  // If we go that route, we should also start returning
-  // the new component here.
-  public addComponent = (component: Component) => {
+  // TODO: Figure out why this is accepting any type, not
+  // just those that extend Component
+  public addComponents = (...classRefs: TypeStore<Component>[]) => {
     this.assertManagerExists();
-    this._manager!.entityAddComponent(this, component);
+    classRefs.forEach((clazz) => {
+      this._manager!.entityAddComponent(this, new clazz());
+    });
 
     return this;
   };
