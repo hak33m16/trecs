@@ -63,8 +63,7 @@ describe("EntityManager", () => {
     const entity = entityManager.createEntity();
     const secondEntity = entityManager.createEntity();
 
-    entity.addComponents(FirstDummyComponent);
-    entity.addComponents(SecondDummyComponent);
+    entity.addComponents(FirstDummyComponent, SecondDummyComponent);
 
     secondEntity.addComponents(FirstDummyComponent);
 

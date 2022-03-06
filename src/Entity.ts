@@ -1,7 +1,8 @@
 import { Component } from "./Component";
 import { EntityManager } from "./EntityManager";
 
-export interface TypeStore<T> extends Function {
+export interface ComponentTypeStore<T> extends Function {
+  __uniqueComponentProperty: any;
   new (...args: any[]): T;
 }
 
@@ -29,13 +30,38 @@ export class Entity {
     this._componentMap = {};
   }
 
-  public component<T extends Component>(classRef: TypeStore<T>): T | undefined {
+  /**
+   * Helper function to safely access components as it is guaranteed
+   * to return a component of the specified type.
+   *
+   * If the specified component type doesn't exist on the entity, it
+   * will auto-construct it and add it.
+   * @param classRef type of component
+   * @returns component of specified type
+   */
+  public component<T extends Component>(classRef: ComponentTypeStore<T>): T {
+    if (!this.hasComponent(classRef)) {
+      return this.addComponent(classRef);
+    }
     return this._componentMap[classRef.name] as T;
   }
 
-  // TODO: Figure out why this is accepting any type, not
-  // just those that extend Component
-  public addComponents = (...classRefs: TypeStore<Component>[]) => {
+  public getComponent<T extends Component>(
+    classRef: ComponentTypeStore<T>
+  ): T | undefined {
+    return this._componentMap[classRef.name] as T;
+  }
+
+  public addComponent<T extends Component>(classRef: ComponentTypeStore<T>): T {
+    this.assertManagerExists();
+    const component = new classRef();
+    this._manager!.entityAddComponent(this, component);
+    return component;
+  }
+
+  public addComponents = (
+    ...classRefs: ComponentTypeStore<Component>[]
+  ): Entity => {
     this.assertManagerExists();
     classRefs.forEach((clazz) => {
       this._manager!.entityAddComponent(this, new clazz());
@@ -44,7 +70,7 @@ export class Entity {
     return this;
   };
 
-  public removeComponent<T extends Component>(classRef: TypeStore<T>) {
+  public removeComponent<T extends Component>(classRef: ComponentTypeStore<T>) {
     this.assertManagerExists();
     this._manager!.entityRemoveComponent(this, classRef);
   }
@@ -54,19 +80,23 @@ export class Entity {
     this._manager!.entityRemoveAllComponents(this);
   };
 
-  public hasAllComponents = (...componentClasses: Function[]) => {
+  public hasAllComponents<T extends Component>(
+    ...classRefs: ComponentTypeStore<T>[]
+  ) {
     let hasAllComponents = true;
 
-    for (const clazz of componentClasses) {
+    for (const clazz of classRefs) {
       hasAllComponents = hasAllComponents && this.hasComponent(clazz);
     }
 
     return hasAllComponents;
-  };
+  }
 
-  public hasComponent = (componentClass: Function) => {
-    return this._componentMap[componentClass.name] !== undefined;
-  };
+  public hasComponent<T extends Component>(
+    classRef: ComponentTypeStore<T>
+  ): boolean {
+    return this._componentMap[classRef.name] !== undefined;
+  }
 
   public hasTag = (tag: string) => {
     return this._tags.has(tag);
