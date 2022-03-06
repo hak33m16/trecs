@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { Entity, EntityID, TypeStore } from "./Entity";
+import { Entity, EntityID, ComponentTypeStore } from "./Entity";
 
 interface TagPool {
   [tag: string]: Map<EntityID, Entity>;
@@ -26,8 +26,20 @@ class EntityGroup implements Iterable<Entity> {
     }
   }
 
-  get(id: EntityID): Entity | undefined {
+  get(entity: Entity): Entity | undefined {
+    return this.groupRef?.get(entity!.id);
+  }
+
+  getById(id: EntityID): Entity | undefined {
     return this.groupRef?.get(id);
+  }
+
+  has(entity: Entity): boolean {
+    return this.groupRef?.get(entity!.id) !== undefined;
+  }
+
+  hasById(id: EntityID): boolean {
+    return this.groupRef?.get(id) !== undefined;
   }
 
   size() {
@@ -150,9 +162,7 @@ export class EntityManager {
       // Only add this entity to a group index if this component is in the group,
       // this entity has all the components of the group, and its not already in
       // the index.
-      const componentIsInGroup = group.componentClasses.includes(
-        component.constructor
-      );
+      const componentIsInGroup = group.hasComponent(component.constructor);
       const entityHasAllComponents = entity.hasAllComponents(
         ...group.componentClasses
       );
@@ -180,7 +190,7 @@ export class EntityManager {
 
   public entityRemoveComponent<T extends Component>(
     entity: Entity,
-    classRef: TypeStore<T>
+    classRef: ComponentTypeStore<T>
   ) {
     if (!entity._componentMap[classRef.name]) return;
 
@@ -199,7 +209,9 @@ export class EntityManager {
     delete entity._componentMap[classRef.name];
   }
 
-  public queryComponents = (...componentClasses: Function[]) => {
+  public queryComponents = (
+    ...componentClasses: ComponentTypeStore<Component>[]
+  ) => {
     const group =
       this.groups.get(this.groupKey(componentClasses)) ??
       this.indexGroup(componentClasses);
@@ -209,7 +221,9 @@ export class EntityManager {
 
   public count = () => this.entities.size;
 
-  private indexGroup = (componentClasses: Function[]): Group => {
+  private indexGroup = (
+    componentClasses: ComponentTypeStore<Component>[]
+  ): Group => {
     const key = this.groupKey(componentClasses);
 
     if (this.groups.has(key)) {
@@ -251,10 +265,22 @@ export class EntityManager {
 }
 
 export class Group {
-  public componentClasses: Function[];
+  public componentClasses: ComponentTypeStore<Component>[];
   public entities: Map<EntityID, Entity>;
 
-  constructor(componentClasses: Function[]) {
+  public hasComponent(classRef: Function) {
+    let hasClass = false;
+    for (const clazz of this.componentClasses) {
+      if (clazz === classRef) {
+        hasClass = true;
+        break;
+      }
+    }
+
+    return hasClass;
+  }
+
+  constructor(componentClasses: ComponentTypeStore<Component>[]) {
     this.componentClasses = componentClasses;
     this.entities = new Map();
   }

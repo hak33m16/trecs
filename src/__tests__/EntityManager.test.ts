@@ -55,52 +55,42 @@ describe("EntityManager", () => {
   test("throws error when adding component type twice", () => {
     const entity = entityManager.createEntity();
 
-    const firstComponent1 = new FirstDummyComponent();
-    const firstComponent2 = new FirstDummyComponent();
-
-    entity.addComponent(firstComponent1);
-    expect(() => entity.addComponent(firstComponent2)).toThrow();
+    entity.addComponents(FirstDummyComponent);
+    expect(() => entity.addComponents(FirstDummyComponent)).toThrow();
   });
 
   test("allows querying by component", () => {
     const entity = entityManager.createEntity();
     const secondEntity = entityManager.createEntity();
 
-    const firstComponent = new FirstDummyComponent();
-    const secondComponent = new SecondDummyComponent();
+    entity.addComponents(FirstDummyComponent, SecondDummyComponent);
 
-    entity.addComponent(firstComponent);
-    entity.addComponent(secondComponent);
-
-    const firstComponent2 = new FirstDummyComponent();
-
-    secondEntity.addComponent(firstComponent2);
+    secondEntity.addComponents(FirstDummyComponent);
 
     const firstQuery = entityManager.queryComponents(
       FirstDummyComponent,
       SecondDummyComponent
     );
-    expect(firstQuery.get(entity.id)).toEqual(entity);
-    expect(firstQuery.get(secondEntity.id)).toBeUndefined();
+    expect(firstQuery.getById(entity.id)).toEqual(entity);
+    expect(firstQuery.getById(secondEntity.id)).toBeUndefined();
 
     const secondQuery = entityManager.queryComponents(FirstDummyComponent);
-    expect(secondQuery.get(entity.id)).toEqual(entity);
-    expect(secondQuery.get(secondEntity.id)).toEqual(secondEntity);
+    expect(secondQuery.getById(entity.id)).toEqual(entity);
+    expect(secondQuery.getById(secondEntity.id)).toEqual(secondEntity);
 
     const thirdQuery = entityManager.queryComponents(SecondDummyComponent);
-    expect(thirdQuery.get(entity.id)).toEqual(entity);
-    expect(thirdQuery.get(secondEntity.id)).toBeUndefined();
+    expect(thirdQuery.getById(entity.id)).toEqual(entity);
+    expect(thirdQuery.getById(secondEntity.id)).toBeUndefined();
   });
 
   test("clears entities out of component groups when a component is removed", () => {
     const entity = entityManager.createEntity();
 
-    const firstComponent = new FirstDummyComponent();
-    entity.addComponent(firstComponent);
+    entity.addComponents(FirstDummyComponent);
 
     expect(entityManager["groups"].size).toEqual(0);
     expect(
-      entityManager.queryComponents(FirstDummyComponent).get(entity.id)
+      entityManager.queryComponents(FirstDummyComponent).getById(entity.id)
     ).toEqual(entity);
     expect(entityManager["groups"].size).toEqual(1);
 
@@ -113,21 +103,21 @@ describe("EntityManager", () => {
   test("adds components to existing groups", () => {
     const entity = entityManager.createEntity();
 
-    entity.addComponent(new FirstDummyComponent());
+    entity.addComponents(FirstDummyComponent);
 
     expect(entityManager["groups"].size).toBe(0);
     // Create group
     const query = entityManager.queryComponents(FirstDummyComponent);
     expect(query.size()).toBe(1);
-    expect(query.get(entity.id)).toBe(entity);
+    expect(query.getById(entity.id)).toBe(entity);
     expect(entityManager["groups"].size).toBe(1);
 
     const secondEntity = entityManager.createEntity();
     // Should reuse group
-    secondEntity.addComponent(new FirstDummyComponent());
+    secondEntity.addComponents(FirstDummyComponent);
     expect(entityManager["groups"].size).toBe(1);
 
-    expect(query.get(secondEntity.id)).toBe(secondEntity);
+    expect(query.getById(secondEntity.id)).toBe(secondEntity);
   });
 
   test("retagging entity should do nothing", () => {
@@ -135,10 +125,10 @@ describe("EntityManager", () => {
 
     expect(entityManager.queryTag("testtag").size()).toBe(0);
     entity.addTag("testtag");
-    expect(entityManager.queryTag("testtag").get(entity.id)).toBe(entity);
+    expect(entityManager.queryTag("testtag").getById(entity.id)).toBe(entity);
     // Should do nothing
     entity.addTag("testtag");
-    expect(entityManager.queryTag("testtag").get(entity.id)).toBe(entity);
+    expect(entityManager.queryTag("testtag").getById(entity.id)).toBe(entity);
   });
 
   test("removing entities by tag that doesnt exist should be fine", () => {
@@ -161,7 +151,7 @@ describe("EntityManager", () => {
   test("impossible normally: make sure indexGroup double calls dont overwrite groups", () => {
     const entity = entityManager.createEntity();
 
-    entity.addComponent(new FirstDummyComponent());
+    entity.addComponents(FirstDummyComponent);
 
     expect(entityManager["groups"].size).toBe(0);
     // Create group
@@ -181,8 +171,8 @@ describe("EntityManager", () => {
     const entity1 = entityManager.createEntity();
     const entity2 = entityManager.createEntity();
 
-    entity1.addComponent(new FirstDummyComponent());
-    entity2.addComponent(new FirstDummyComponent());
+    entity1.addComponents(FirstDummyComponent);
+    entity2.addComponents(FirstDummyComponent);
 
     const group = entityManager.queryComponents(FirstDummyComponent);
     let count = 0;
@@ -196,19 +186,19 @@ describe("EntityManager", () => {
     const componentQuery = entityManager.queryComponents(FirstDummyComponent);
 
     expect(componentQuery.size()).toBe(0);
-    expect(componentQuery.get(0)).toBeUndefined();
+    expect(componentQuery.getById(0)).toBeUndefined();
 
     // Tag queries don't always return a group which is why we
     // use optional chaining in the EntityGroup
     const tagQuery = entityManager.queryTag("nonexistent");
 
     expect(tagQuery.size()).toBe(0);
-    expect(tagQuery.get(0)).toBeUndefined();
+    expect(tagQuery.getById(0)).toBeUndefined();
   });
 
   test("forEach allows us to iterate over entities", () => {
     const entity = entityManager.createEntity();
-    entity.addComponent(new FirstDummyComponent());
+    entity.addComponents(FirstDummyComponent);
 
     const group = entityManager.queryComponents(FirstDummyComponent);
     group.forEach((groupEntity) => {
@@ -224,5 +214,31 @@ describe("EntityManager", () => {
 
     expect(() => tagQuery.forEach(() => {})).not.toThrow();
     expect(() => tagQuery.toArray()).not.toThrow();
+  });
+
+  test("get/has entity work as expected", () => {
+    const entity = entityManager.createEntity();
+    entity.addComponents(FirstDummyComponent);
+
+    const group = entityManager.queryComponents(FirstDummyComponent);
+    expect(group.has(entity)).toBe(true);
+    expect(group.get(entity)).toBe(entity);
+
+    const tagGroup = entityManager.queryTag("nonexistent");
+    expect(tagGroup.get(entity)).toBe(undefined);
+    expect(tagGroup.has(entity)).toBe(false);
+  });
+
+  test("get/has by id work as expected", () => {
+    const entity = entityManager.createEntity();
+    entity.addComponents(FirstDummyComponent);
+
+    const group = entityManager.queryComponents(FirstDummyComponent);
+    expect(group.hasById(entity.id)).toBe(true);
+    expect(group.getById(entity.id)).toBe(entity);
+
+    const tagGroup = entityManager.queryTag("nonexistent");
+    expect(tagGroup.getById(entity.id)).toBe(undefined);
+    expect(tagGroup.hasById(entity.id)).toBe(false);
   });
 });

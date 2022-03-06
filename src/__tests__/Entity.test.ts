@@ -20,10 +20,9 @@ describe("Entity", () => {
   test("can add component to entity, retrieve it, and modifications persist", () => {
     const entity = entityManager.createEntity();
 
-    const firstComponent = new FirstDummyComponent();
-    firstComponent.dummyField = "dummyval1";
-    entity.addComponent(firstComponent);
-    expect(entity.component(FirstDummyComponent)!.dummyField).toEqual(
+    entity.addComponents(FirstDummyComponent);
+    entity.component(FirstDummyComponent).dummyField = "dummyval1";
+    expect(entity.component(FirstDummyComponent).dummyField).toEqual(
       "dummyval1"
     );
 
@@ -31,8 +30,8 @@ describe("Entity", () => {
     expect(entity.hasAllComponents(FirstDummyComponent)).toEqual(true);
 
     const firstComponentByRef = entity.component(FirstDummyComponent);
-    firstComponentByRef!.dummyField = "dummyvalnumber2";
-    expect(entity.component(FirstDummyComponent)!.dummyField).toEqual(
+    firstComponentByRef.dummyField = "dummyvalnumber2";
+    expect(entity.component(FirstDummyComponent).dummyField).toEqual(
       "dummyvalnumber2"
     );
   });
@@ -43,7 +42,9 @@ describe("Entity", () => {
 
     entity.addTag("testtag");
     expect(entity.hasTag("testtag")).toEqual(true);
-    expect(entityManager.queryTag("testtag")?.get(entity.id)).toEqual(entity);
+    expect(entityManager.queryTag("testtag")?.getById(entity.id)).toEqual(
+      entity
+    );
 
     entity.removeTag("testtag");
     expect(entity.hasTag("testtag")).toEqual(false);
@@ -51,30 +52,27 @@ describe("Entity", () => {
 
   test("can remove component", () => {
     const entity = entityManager.createEntity();
-    // TODO: Figure out why tf it's allowing this
-    //entity.addComponent(FirstDummyComponent);
-    const firstComponent = new FirstDummyComponent();
-    entity.addComponent(firstComponent);
-    expect(entity.component(FirstDummyComponent)).toEqual(firstComponent);
+
+    entity.addComponents(FirstDummyComponent);
+    expect(entity.getComponent(FirstDummyComponent)).not.toBeUndefined();
 
     entity.removeComponent(FirstDummyComponent);
-    expect(entity.component(FirstDummyComponent)).toEqual(undefined);
+    expect(entity.getComponent(FirstDummyComponent)).toBeUndefined();
 
-    entity.addComponent(firstComponent);
-    expect(entity.component(FirstDummyComponent)).toEqual(firstComponent);
+    entity.addComponents(FirstDummyComponent);
+    expect(entity.getComponent(FirstDummyComponent)).not.toBeUndefined();
 
     entity.removeAllComponents();
-    expect(entity.component(FirstDummyComponent)).toEqual(undefined);
+    expect(entity.getComponent(FirstDummyComponent)).toBeUndefined();
   });
 
   test("removing entity clears existing tags, components, and manager", () => {
     const entity = entityManager.createEntity();
     expect(entity._manager).toBeDefined();
 
-    const firstComponent = new FirstDummyComponent();
-    expect(entity.component(FirstDummyComponent)).toEqual(undefined);
-    entity.addComponent(firstComponent);
-    expect(entity.component(FirstDummyComponent)).toEqual(firstComponent);
+    expect(entity.getComponent(FirstDummyComponent)).toBeUndefined();
+    entity.addComponents(FirstDummyComponent);
+    expect(entity.getComponent(FirstDummyComponent)).not.toBeUndefined();
 
     expect(entity.hasTag("testtag")).toEqual(false);
     entity.addTag("testtag");
@@ -84,7 +82,7 @@ describe("Entity", () => {
     expect(entity._manager).toEqual(null);
     // TODO: Should all entity functions throw if it has no manager?
     expect(entity.hasTag("testtag")).toEqual(false);
-    expect(entity.component(FirstDummyComponent)).toEqual(undefined);
+    expect(entity.getComponent(FirstDummyComponent)).toBeUndefined();
   });
 
   test("entity throws error when it has no manager", () => {
@@ -101,19 +99,14 @@ describe("Entity", () => {
   test("can add multiple components to entity", () => {
     const entity = entityManager.createEntity();
 
-    expect(entity.component(FirstDummyComponent)).toEqual(undefined);
-    expect(entity.component(SecondDummyComponent)).toEqual(undefined);
+    expect(entity.getComponent(FirstDummyComponent)).toBeUndefined();
+    expect(entity.getComponent(SecondDummyComponent)).toBeUndefined();
 
-    const firstComponent = new FirstDummyComponent();
-    const secondComponent = new SecondDummyComponent();
+    entity.addComponents(FirstDummyComponent);
+    entity.addComponents(SecondDummyComponent);
 
-    entity.addComponent(firstComponent);
-    entity.addComponent(secondComponent);
-
-    console.log(entityManager["groups"]);
-
-    expect(entity.component(FirstDummyComponent)).toEqual(firstComponent);
-    expect(entity.component(SecondDummyComponent)).toEqual(secondComponent);
+    expect(entity.getComponent(FirstDummyComponent)).not.toBeUndefined();
+    expect(entity.getComponent(SecondDummyComponent)).not.toBeUndefined();
   });
 
   test("removing tag that doesnt exist shouldnt throw", () => {
@@ -127,5 +120,37 @@ describe("Entity", () => {
 
   test("removing a component that an entity doesnt have shouldnt throw", () => {
     entityManager.createEntity().removeComponent(FirstDummyComponent);
+  });
+
+  test("can add multiple components at once that are auto constructed", () => {
+    const entity = entityManager
+      .createEntity()
+      .addComponents(FirstDummyComponent, SecondDummyComponent);
+
+    expect(entity.component(FirstDummyComponent)).not.toBeUndefined();
+    expect(entity.component(SecondDummyComponent)).not.toBeUndefined();
+
+    entity.component(FirstDummyComponent).dummyField = "test";
+    entity.component(SecondDummyComponent).secondDummyField = 69;
+
+    expect(entity.component(FirstDummyComponent).dummyField).toEqual("test");
+    expect(entity.component(SecondDummyComponent).secondDummyField).toEqual(69);
+  });
+
+  test("addComponent returns reference to underlying component", () => {
+    const entity = entityManager.createEntity();
+    const dummyRef = entity.addComponent(FirstDummyComponent);
+    expect(entity.component(FirstDummyComponent)).toBe(dummyRef);
+
+    dummyRef.dummyField = "test";
+    expect(entity.component(FirstDummyComponent).dummyField).toBe("test");
+  });
+
+  test("component() auto constructs missing components", () => {
+    const entity = entityManager.createEntity();
+    expect(entity.getComponent(FirstDummyComponent)).toBeUndefined();
+    entity.component(FirstDummyComponent).dummyField = "test";
+    expect(entity.getComponent(FirstDummyComponent)).not.toBeUndefined();
+    expect(entity.component(FirstDummyComponent).dummyField).toEqual("test");
   });
 });

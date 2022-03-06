@@ -1,6 +1,6 @@
-[![Build Status](https://github.com/hak33m16/trecs/workflows/build/badge.svg?branch=master)](https://github.com/hak33m16/trecs/actions?query=workflow%3Abuild+branch%3Amaster) [![codecov](https://codecov.io/gh/hak33m16/trecs/branch/master/graph/badge.svg?token=QG2BOJPZC3)](https://codecov.io/gh/hak33m16/trecs) [![Code Climate](https://codeclimate.com/github/hak33m16/trecs/badges/gpa.svg)](https://codeclimate.com/github/hak33m16/trecs)
+[![npm version](https://badge.fury.io/js/trecs.svg)](https://badge.fury.io/js/trecs) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) 
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) [![npm version](https://badge.fury.io/js/trecs.svg)](https://badge.fury.io/js/trecs)
+[![Build Status](https://github.com/hak33m16/trecs/workflows/build/badge.svg?branch=master)](https://github.com/hak33m16/trecs/actions?query=workflow%3Abuild+branch%3Amaster) [![codecov](https://codecov.io/gh/hak33m16/trecs/branch/master/graph/badge.svg?token=QG2BOJPZC3)](https://codecov.io/gh/hak33m16/trecs) [![Code Climate](https://codeclimate.com/github/hak33m16/trecs/badges/gpa.svg)](https://codeclimate.com/github/hak33m16/trecs)
 
 # TrECS
 
@@ -51,17 +51,43 @@ class Sprite extends Component {
 }
 ```
 
-Components are added using `addComponent` and support chaining:
-
+It's recommended to add components using the `component` helper method:
 ```ts
-hero.addComponent(new PlayerControlled()).addComponent(new Sprite());
+const spriteRef = hero.component(Sprite)
+spriteRef.image = 'new-image.png'
 ```
 
-Retrieve components in a type-safe way:
+The `component` method will either return a reference to the entities instance of that particular type, or it will auto construct it before doing so.
+
+If you'd like to add multiple components at once, the `addComponents` method is available, but will require that you retrieve them through other accessors afterwards.
+
+```ts
+hero.addComponents(PlayerControlled, Sprite)
+```
+
+Components can then be retrieved with `component`:
 
 ```ts
 hero.component(PlayerControlled).gamepad = 2
 hero.component(Sprite).image === 'hero.png'; // true
+```
+
+Optionally, there's the `getComponent` method, but it won't auto construct components for you and therefore can't guarantee that what it returns is defined:
+
+```ts
+hero.getComponent(PlayerControlled)!.gamepad = 2 // note the !. to guarantee non-null
+```
+
+In order to check if an entity has a component, use the helper method `hasComponent`:
+
+```ts
+hero.hasComponent(PlayerControlled) // true
+```
+
+A set of components can also be quickly checked:
+
+```ts
+if (hero.hasAllComponents(Transform, Sprite)) { ... }
 ```
 
 Entities can be tagged with a string for fast retrieval:
@@ -71,7 +97,7 @@ hero.addTag('player');
 
 ...
 
-const hero = Array.from(world.queryTag('player').values())[0] // This syntax will get better, I promise
+const hero = world.queryTag('player').toArray()[0]
 ```
 
 You can also remove components and tags in much the same way:
@@ -81,42 +107,60 @@ hero.removeComponent(Sprite);
 hero.removeTag('player');
 ```
 
-`hasComponent` will efficiently determine if an entity has a specific single
-component:
-
-```ts
-if (hero.hasComponent(Transform)) { ... }
-```
-
-A set of components can also be quickly checked:
-
-```ts
-if (hero.hasAllComponents(Transform, Sprite)) { ... }
-```
-
 ### Querying Entities
 
 The entity manager indexes entities and their components, allowing extremely
 fast queries.
 
-Entity queries return an array of entities.
+Entity queries return read-only reference to a group of entities.
 
 Get all entities that have a specific set of components:
 
 ```ts
-const toDraw = entities.queryComponents(Transform, Sprite);
+const toDraw = world.queryComponents(Transform, Sprite);
 ```
 
 Get all entities with a certain tag:
 
 ```ts
-const enemies = entities.queryTag('enemy');
+const enemies = world.queryTag('enemy');
+```
+
+The type of the returned query is also directly iterable:
+
+```ts
+const objects = world.queryComponents(Position, Velocity)
+for (const entity of objects) { ... }
+```
+
+Note that the underlying group can be modified by anything that has a reference to your entity manager. If you need a copy of the results that won't be modified, create an array of the results.
+
+```ts
+const objects = world.queryComponents(Position, Velocity)
+
+const myCopy = objects.toArray()
+// OR
+const myCopy = Array.from(objects)
 ```
 
 ### Removing Entities
 
+To remove an entity from a manager, all of its components, and all of its tags, use `remove`:
+
 ```ts
 hero.remove();
+```
+
+To remove a particular component, use `removeComponent`:
+
+```ts
+hero.removeComponent(Sprite)
+```
+
+To remove a tag, use `removeTag`:
+
+```ts
+hero.removeTag('player')
 ```
 
 ### Components
@@ -138,9 +182,9 @@ function PhysicsSystem (world)
   this.update = function (dt, time) {
     var candidates = world.queryComponents(Transform, RigidBody);
 
-    candidates.forEach(function(entity) {
+    for (const entity of candidates) {
       ...
-    });
+    }
   }
 }
 ```
